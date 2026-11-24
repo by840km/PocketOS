@@ -31,6 +31,8 @@ cargo test --workspace --offline
 
 ## Скачать beta
 
+[Скачать PocketOS Beta ZIP (1,8 ГБ)](https://github.com/by840km/PocketOS/releases/download/v0.4.0-beta.1/PocketOS-0.4.0-beta.1-usb.zip) — открытая загрузка без входа в GitHub.
+
 [Релизы с ZIP](https://github.com/by840km/PocketOS/releases). Установщика нет.
 
 1. Распаковать ZIP на USB с exFAT или NTFS (от 3 ГБ свободного места).
