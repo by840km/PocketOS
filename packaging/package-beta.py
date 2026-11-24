@@ -6,6 +6,8 @@ p=argparse.ArgumentParser();p.add_argument('--runtime',default='D:/PocketOS');p.
 r=pathlib.Path(a.runtime);out=pathlib.Path(a.out);out.mkdir(parents=True,exist_ok=True)
 archive=out/'PocketOS-0.4.0-beta.1-usb.zip'
 components=[(r/'PocketOS.exe','PocketOS/PocketOS.exe'),(r/'pocketos-core.exe','PocketOS/pocketos-core.exe')]
+project=pathlib.Path(__file__).resolve().parents[1]
+components += [(project/n,'PocketOS/'+n) for n in ('README.md','LICENSE','THIRD_PARTY.md')]
 components += [(r/'system'/n,'PocketOS/system/'+n) for n in ['vmlinuz','initrd.img']]
 components += [(pathlib.Path(a.image) if a.image else r/'system/pocketos.qcow2','PocketOS/system/pocketos.qcow2')]
 qemu=pathlib.Path(a.qemu) if a.qemu else r/'qemu'
