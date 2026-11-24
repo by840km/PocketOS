@@ -1,0 +1,12 @@
+{
+  "date": "2026-11-24",
+  "qemu": {
+    "url": "https://qemu.weilnetz.de/w64/qemu-w64-setup-20260811.exe",
+    "sha512": "5BCF9EED634E8575A37B74F445AF41A2FE4106DA512D0C30C368301D4C105037FDFAB40A5287367A28A957624CDDEBBC8C07E16C88AB6634F554CDF3D16BF543"
+  },
+  "debian": {
+    "url": "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-generic-amd64.qcow2",
+    "sha512": "562A4614952657A6AB8A89CDA56EAF1BC85C8DFEA51155184267BB6B6361EFF215BAF6AFA2F8C2C8C2BAD328AC6C30EEAD80664286EF4C8538368AEB7F87104F",
+    "note": "latest is mutable; require this hash or use a matching archived image"
+  }
+}

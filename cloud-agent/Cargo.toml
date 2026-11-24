@@ -1,0 +1,4 @@
+[package]
+name = "pocketos-cloud-agent"
+version.workspace = true
+edition.workspace = true

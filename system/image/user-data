@@ -1,0 +1,27 @@
+#cloud-config
+hostname: pocketos
+manage_etc_hosts: true
+users:
+  - name: pocket
+    gecos: PocketOS
+    groups: [audio, video, render]
+    shell: /bin/bash
+    lock_passwd: true
+disable_root: true
+ssh_pwauth: false
+apt:
+  conf: |
+    APT::Install-Recommends "false";
+    APT::Install-Suggests "false";
+package_update: true
+package_upgrade: false
+write_files:
+# POCKETOS_PLASMA_FILES
+runcmd:
+  - [bash, /root/configure-guest.sh]
+  - [systemctl, disable, ssh.service]
+final_message: 'PocketOS image provisioning finished after $UPTIME seconds'
+power_state:
+  mode: reboot
+  timeout: 60
+  condition: true

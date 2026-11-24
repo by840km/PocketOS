@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/catppuccin/kde",
+  "tag": "v0.2.7",
+  "commit": "4e2f142b3b51dfb70ec1eb216a88f8d7abb999d5",
+  "variant": "Mocha Blue",
+  "derived_asset": "CatppuccinMochaBlue.colors",
+  "sha256": "73eb3b06f7ef7f443940e75a2d0148054ab1fcd4f4e55e3cc4d156dfc3a1735b",
+  "decorations": "native Breeze",
+  "icons": "Debian papirus-icon-theme",
+  "layout": "PocketOS, stock Plasma widgets"
+}

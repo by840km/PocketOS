@@ -1,0 +1,16 @@
+/target/
+/dist/
+/runtime/
+*.qcow2
+*.img
+*.iso
+*.log
+*.pem
+*.key
+rclone.conf
+.env
+
+__pycache__/
+
+docs/evidence/
+docs/STATUS*.md

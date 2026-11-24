@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+kwriteconfig6 --file kdeglobals --group General --key ColorScheme CatppuccinMochaBlue
+for attempt in $(seq 1 60); do
+    if output=$(qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript "$(cat /usr/share/pocketos/plasma/layout.js)" 2>&1); then
+        printf '%s\n' "$output" > /tmp/pocketos-layout.log
+        if printf '%s\n' "$output" | grep -q POCKETOS_LAYOUT_READY; then
+            touch "$XDG_RUNTIME_DIR/pocketos-layout-ready"
+            exit 0
+        fi
+    else
+        printf '%s\n' "$output" > /tmp/pocketos-layout.log
+    fi
+    sleep 1
+done
+exit 1

@@ -1,0 +1,3 @@
+* text=auto eol=lf
+system/ramroot/modules.dep -text
+system/plasma/*.colors -text

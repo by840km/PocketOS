@@ -1,0 +1,99 @@
+#!/bin/sh
+# Read-only USB base + volatile tmpfs upper. No host scratch disk.
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+fail() { printf "POCKETOS:ERROR:%s\n" "$*" > /dev/ttyS0 2>/dev/null || true; echo "PocketOS RAM root failed: $*"; exec /bin/sh; }
+mount -t proc proc /proc || fail proc
+mount -t sysfs sysfs /sys || fail sysfs
+mount -t devtmpfs devtmpfs /dev || true
+printf "POCKETOS:KERNEL\n" > /dev/ttyS0 2>/dev/null || true
+depmod -a || fail depmod
+for module in virtio_pci virtio_blk virtio_rng ext4 overlay; do
+    modprobe "$module" || fail "$module"
+done
+for n in 1 2 3 4 5 6 7 8 9 10; do
+    [ -b /dev/vda1 ] && break
+    sleep 1
+done
+mkdir -p /lower /cow /newroot
+build_rw=false
+case " $(cat /proc/cmdline) " in
+    *" pocketos.build=rw "*) [ -s /pocketos-debug-key ] && build_rw=true ;;
+esac
+if $build_rw; then
+mount -t ext4 -o rw /dev/vda1 /newroot || fail build-root
+else
+mount -t ext4 -o ro,noload /dev/vda1 /lower || fail lower
+printf "POCKETOS:ROOT\n" > /dev/ttyS0 2>/dev/null || true
+mount -t tmpfs -o size=1024m,mode=0755 tmpfs /cow || fail tmpfs
+mkdir -p /cow/upper /cow/work
+mount -t overlay overlay -o lowerdir=/lower,upperdir=/cow/upper,workdir=/cow/work /newroot || fail overlay
+fi
+# Firmware partition and automatic growfs are unnecessary in this direct-boot mode.
+printf 'tmpfs /tmp tmpfs mode=1777,nosuid,nodev 0 0\n' > /newroot/etc/fstab
+mkdir -p /newroot/etc/systemd/system
+ln -sf /dev/null /newroot/etc/systemd/system/systemd-growfs-root.service
+# A build-time public key enables LOCAL diagnostic access in a separate debug initrd only.
+# Release builds do not contain this file and keep SSH masked.
+if [ -s /pocketos-debug-key ]; then
+    mkdir -p /newroot/root/.ssh /newroot/etc/systemd/system/multi-user.target.wants
+    cp /pocketos-debug-key /newroot/root/.ssh/authorized_keys
+    chmod 700 /newroot/root/.ssh
+    chmod 600 /newroot/root/.ssh/authorized_keys
+    rm -f /newroot/etc/systemd/system/ssh.service /newroot/etc/systemd/system/ssh.socket
+    ln -sf /usr/lib/systemd/system/ssh.service /newroot/etc/systemd/system/multi-user.target.wants/ssh.service
+fi
+# Avoid background update scans on a volatile live session.
+mkdir -p /newroot/home/pocket/.config
+# The adaptive Breeze style follows the Catppuccin palette; breeze-dark has
+# its own fixed colors and would leave the panel gray.
+printf '[Theme]\nname=default\n' > /newroot/home/pocket/.config/plasmarc
+chown 1000 /newroot/home/pocket/.config/plasmarc
+for unit in apt-daily.timer apt-daily-upgrade.timer; do
+    ln -sf /dev/null "/newroot/etc/systemd/system/$unit"
+done
+mkdir -p /newroot/usr/local/bin
+cp /pocketos-plasma-layout /newroot/usr/local/bin/pocketos-plasma-layout
+chmod 755 /newroot/usr/local/bin/pocketos-plasma-layout
+# Report actual Plasma readiness through the private virtual serial link.
+mkdir -p /newroot/usr/local/bin /newroot/etc/systemd/system/graphical.target.wants
+cat > /newroot/usr/local/bin/pocketos-ready <<'READY_SCRIPT'
+#!/bin/sh
+printf 'POCKETOS:DESKTOP_START\n' > /dev/ttyS0
+for attempt in $(seq 1 120); do
+    if [ -f /run/user/1000/pocketos-layout-ready ] && runuser -u pocket -- env XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus --method org.freedesktop.DBus.NameHasOwner org.kde.plasmashell 2>/dev/null | grep -q true; then
+        sleep 1
+        printf '\nPOCKETOS:READY\n' > /dev/ttyS0
+        exit 0
+    fi
+    sleep 1
+done
+printf 'POCKETOS:ERROR:Plasma did not become ready\n' > /dev/ttyS0
+exit 1
+READY_SCRIPT
+chmod 755 /newroot/usr/local/bin/pocketos-ready
+cat > /newroot/etc/systemd/system/pocketos-ready.service <<'READY_UNIT'
+[Unit]
+Description=PocketOS desktop readiness
+After=display-manager.service systemd-user-sessions.service
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/pocketos-ready
+TimeoutStartSec=150
+[Install]
+WantedBy=graphical.target
+READY_UNIT
+ln -sf /etc/systemd/system/pocketos-ready.service /newroot/etc/systemd/system/graphical.target.wants/pocketos-ready.service
+# Preserve backing mounts before switch_root frees the original initramfs.
+mkdir -p /newroot/.pocketos/lower /newroot/.pocketos/cow
+if ! $build_rw; then
+mount --move /lower /newroot/.pocketos/lower || fail preserve-lower
+mount --move /cow /newroot/.pocketos/cow || fail preserve-cow
+fi
+for fs in dev proc sys; do
+    mount --move "/$fs" "/newroot/$fs" || fail "move $fs"
+done
+if [ -s /pocketos-debug-key ]; then
+    chroot /newroot /usr/bin/ssh-keygen -A || fail debug-host-key
+fi
+echo 'PocketOS: read-only base, 1 GiB RAM overlay, changes disappear at shutdown.'
+exec /usr/bin/busybox switch_root /newroot /sbin/init
