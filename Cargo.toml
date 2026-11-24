@@ -1,5 +1,6 @@
 [workspace]
-members = ["launcher", "cloud-agent", "installer"]
+members = ["launcher", "cloud-agent"]
+exclude = ["installer"]
 resolver = "2"
 
 [workspace.package]

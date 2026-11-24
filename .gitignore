@@ -1,6 +1,7 @@
 /target/
 /dist/
 /runtime/
+/installer/
 *.qcow2
 *.img
 *.iso
